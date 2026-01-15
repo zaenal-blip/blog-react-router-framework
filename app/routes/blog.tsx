@@ -1,14 +1,34 @@
 import { ArrowLeft } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
+import type { Blog } from "~/components/blog-card";
 import Footer from "~/components/footer";
 import Navbar from "~/components/navbar";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { axiosInstance } from "~/lib/axios";
 import type { Route } from "./+types/blog";
-import { mockBlogs } from "./home";
 
 export default function Blog({ params }: Route.ComponentProps) {
-  const blog = mockBlogs.find((b) => b.objectId === params.objectId);
+  const [blog, setBlog] = useState<Blog | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const getBlog = async () => {
+    try {
+      const { data } = await axiosInstance(
+        `/api/data/Blogs/${params.objectId}`
+      );
+      setBlog(data);
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    getBlog();
+  }, []);
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleDateString("en-US", {
@@ -17,6 +37,14 @@ export default function Blog({ params }: Route.ComponentProps) {
       day: "numeric",
     });
   };
+
+  if (isLoading) {
+    return (
+      <div className="h-screen flex justify-center items-center">
+        <p className="text-2xl font-bold">Loading...</p>
+      </div>
+    );
+  }
 
   if (!blog) {
     return (
