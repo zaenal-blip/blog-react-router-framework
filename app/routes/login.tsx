@@ -1,7 +1,8 @@
-import { Link } from "react-router";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Controller, useForm } from "react-hook-form";
+import { Link, redirect, useNavigate } from "react-router";
+import * as z from "zod";
 import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
 import {
   Card,
   CardContent,
@@ -10,13 +11,52 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
+import { Field, FieldError, FieldLabel } from "~/components/ui/field";
+import { Input } from "~/components/ui/input";
+import { axiosInstance } from "~/lib/axios";
+import { useAuth } from "~/stores/useAuth";
+
+const formSchema = z.object({
+  email: z.email({ error: "Invalid email address." }),
+  password: z.string().min(6, "Password must be at least 6 characters."),
+});
+
+export const clientLoader = () => {
+  const user = useAuth.getState().user;
+  if (user) return redirect("/");
+};
 
 export default function Login() {
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // UI only - no actual login logic
-    console.log("Login submitted (UI only)");
-  };
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  async function onSubmit(data: z.infer<typeof formSchema>) {
+    try {
+      const response = await axiosInstance.post("/api/users/login", {
+        login: data.email,
+        password: data.password,
+      });
+
+      login({
+        objectId: response.data.objectId,
+        name: response.data.name,
+        email: response.data.email,
+        userToken: response.data["user-token"],
+      });
+
+      navigate("/");
+    } catch (error) {
+      alert("Error login");
+    }
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
@@ -31,31 +71,56 @@ export default function Login() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form
+            id="form-login"
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-4"
+          >
             {/* Email */}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                required
-              />
-            </div>
+            <Controller
+              name="email"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="form-login-email">Email</FieldLabel>
+                  <Input
+                    {...field}
+                    id="form-login-email"
+                    aria-invalid={fieldState.invalid}
+                    placeholder="you@example.com"
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
 
             {/* Password */}
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                required
-              />
-            </div>
+            <Controller
+              name="password"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="form-login-password">
+                    Password
+                  </FieldLabel>
+                  <Input
+                    {...field}
+                    id="form-login-password"
+                    type="password"
+                    aria-invalid={fieldState.invalid}
+                    placeholder="••••••••"
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
 
             {/* Submit Button */}
-            <Button type="submit" className="w-full">
+            <Button type="submit" form="form-login" className="w-full">
               Login
             </Button>
           </form>

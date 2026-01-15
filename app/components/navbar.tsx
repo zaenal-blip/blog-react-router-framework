@@ -1,8 +1,11 @@
+import { PenSquare } from "lucide-react";
 import { Link } from "react-router";
 import { Button } from "~/components/ui/button";
-import { PenSquare } from "lucide-react";
+import { useAuth } from "~/stores/useAuth";
 
 const Navbar = () => {
+  const { user, logout } = useAuth();
+
   return (
     <nav className="border-b bg-background">
       <div className="container mx-auto px-4">
@@ -31,14 +34,25 @@ const Navbar = () => {
 
           {/* Auth Buttons */}
           <div className="flex items-center gap-3">
-            <Link to="/login">
-              <Button variant="ghost" size="sm">
-                Login
-              </Button>
-            </Link>
-            <Link to="/register">
-              <Button size="sm">Register</Button>
-            </Link>
+            {user ? (
+              <>
+                <p>{user.name}</p>
+                <Button variant="ghost" size="sm" onClick={logout}>
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button variant="ghost" size="sm">
+                    Login
+                  </Button>
+                </Link>
+                <Link to="/register">
+                  <Button size="sm">Register</Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>
